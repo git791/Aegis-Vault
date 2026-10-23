@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aegis Vault | Authenticated Encryption & AES Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0B1020;
+      --surface: rgba(18, 26, 46, 0.75);
+      --surface-solid: #121A2E;
+      --border: #2A3553;
+      --border-focus: #22D3EE;
+      --text: #E6EAF5;
+      --muted: #9AA6C4;
+      --cyan: #22D3EE;
+      --violet: #8B5CF6;
+      --success: #34D399;
+      --danger: #F87171;
+      --warning: #FBBF24;
+      --radius: 12px;
+      --radius-sm: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(34, 211, 238, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px rgba(34, 211, 238, 0.35);
+    }
+
+    .brand-logo svg {
+      width: 22px;
+      height: 22px;
+      fill: #0B1020;
+    }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    .tagline {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(52, 211, 153, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      color: var(--success);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    /* Navigation Tabs */
+    nav {
+      display: flex;
+      gap: 8px;
+      background: var(--surface);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      padding: 6px;
+      border-radius: var(--radius);
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .tab-btn.active {
+      color: #0B1020;
+      background: var(--cyan);
+      font-weight: 600;
+      box-shadow: 0 0 16px rgba(34, 211, 238, 0.3);
+    }
+
+    .tab-btn.active svg {
+      fill: #0B1020;
+    }
+
+    .tab-btn:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    /* Glass Cards */
+    .glass-card {
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-desc {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* Forms & Controls */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    input[type="text"],
+    input[type="password"],
+    select,
+    textarea {
+      background: rgba(11, 16, 32, 0.8);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input.mono, textarea.mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--cyan);
+      color: #0B1020;
+    }
+
+    .btn-primary:hover {
+      background: #38bdf8;
+      box-shadow: 0 0 14px rgba(34, 211, 238, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-violet {
+      background: var(--violet);
+      color: #ffffff;
+    }
+
+    .btn-violet:hover {
+      background: #7c3aed;
+      box-shadow: 0 0 14px rgba(139, 92, 246, 0.4);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Drop Zone */
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(11, 16, 32, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--cyan);
+      background: rgba(34, 211, 238, 0.05);
+    }
+
+    .dropzone-icon {
+      width: 48px;
+      height: 48px;
+      color: var(--cyan);
+    }
+
+    /* Tab panels */
+    .tab-panel {
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .tab-panel.active {
+      display: flex;
+    }
+
+    /* State Matrix Grid */
+    .matrix-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 52px);
+      grid-gap: 8px;
+      background: rgba(11, 16, 32, 0.8);
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .matrix-cell {
+      width: 52px;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.25s ease;
+    }
+
+    .matrix-cell.changed {
+      background: rgba(139, 92, 246, 0.25);
+      border-color: var(--violet);
+      color: #C4B5FD;
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
+      font-weight: 700;
+    }
+
+    /* Step timeline */
+    .timeline {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 10px 4px;
+    }
+
+    .step-pill {
+      background: var(--surface-solid);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .step-pill.active {
+      background: var(--violet);
+      border-color: var(--violet);
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 0 12px rgba(139, 92, 246, 0.35);
+    }
+
+    /* Password strength bar */
+    .strength-meter {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .strength-bar {
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease, background-color 0.3s ease;
+    }
+
+    .score-0 { width: 10%; background: var(--danger); }
+    .score-1 { width: 25%; background: var(--danger); }
+    .score-2 { width: 50%; background: var(--warning); }
+    .score-3 { width: 75%; background: var(--cyan); }
+    .score-4 { width: 100%; background: var(--success); }
+
+    /* Results / toasts */
+    .toast {
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .toast-success {
+      background: rgba(52, 211, 153, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      color: var(--success);
+    }
+
+    .toast-danger {
+      background: rgba(248, 113, 113, 0.12);
+      border: 1px solid rgba(248, 113, 113, 0.3);
+      color: var(--danger);
+    }
+
+    .toast-warning {
+      background: rgba(251, 191, 36, 0.12);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      color: var(--warning);
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Progress bar */
+    .progress-bar-bg {
+      background: rgba(11, 16, 32, 0.8);
+      border-radius: 4px;
+      height: 8px;
+      overflow: hidden;
+      width: 100%;
+      border: 1px solid var(--border);
+    }
+
+    .progress-bar-fill {
+      background: linear-gradient(90deg, var(--cyan), var(--violet));
+      height: 100%;
+      width: 0%;
+      transition: width 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 12px 8px; }
+      nav { flex-wrap: wrap; }
+      .matrix-grid { grid-template-columns: repeat(4, 40px); }
+      .matrix-cell { width: 40px; height: 36px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+        </div>
+        <div>
+          <h1>Aegis Vault</h1>
+          <div class="tagline">Local-first authenticated encryption & AES teaching lab</div>
+        </div>
+      </div>
+      <div class="status-badge" title="Localhost only, Host header protected">
+        <div class="status-dot"></div>
+        <span>127.0.0.1 Bound</span>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav role="tablist">
+      <button class="tab-btn active" role="tab" data-tab="tab-vault">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        Vault
+      </button>
+      <button class="tab-btn" role="tab" data-tab="tab-inspector">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        Inspector
+      </button>
+      <button class="tab-btn" role="tab" data-tab="tab-password">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h20v2H2v-2zm1.15-4.05L4 11.47l.85 1.48 1.3-.75-.85-1.48H7v-1.5H5.3l.85-1.47L4.85 7 4 8.47 3.15 7l-1.3.75.85 1.47H1v1.5h1.7l-.85 1.48 1.3.75zm7 0L11 11.47l.85 1.48 1.3-.75-.85-1.48H14v-1.5h-1.7l.85-1.47L11.85 7 11 8.47 10.15 7l-1.3.75.85 1.47H8v1.5h1.7l-.85 1.48 1.3.75zm7 0l.85-1.48.85 1.48 1.3-.75-.85-1.48H21v-1.5h-1.7l.85-1.47-1.3-.75-.85 1.47-.85-1.47-1.3.75.85 1.47H15v1.5h1.7l-.85 1.48 1.3.75z"/></svg>
+        Password Lab
+      </button>
+      <button class="tab-btn" role="tab" data-tab="tab-avalanche">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+        Avalanche Lab
+      </button>
+      <button class="tab-btn" role="tab" data-tab="tab-slots">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+        Key Slots
+      </button>
+      <button class="tab-btn" role="tab" data-tab="tab-xray">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+        AES X-Ray
+      </button>
+    </nav>
+
+    <!-- TAB 1: VAULT -->
+    <div id="tab-vault" class="tab-panel active">
+      <div class="glass-card">
+        <div class="card-title">
+          <span>File Encryption & Decryption Vault</span>
+        </div>
+        <div class="card-desc">
+          Authenticated file encryption using <strong>AES-256-GCM</strong> chunked streaming and <strong>Argon2id</strong> (64MB memory-hard key derivation). Fails closed: any corrupted or tampered byte leaves zero plaintext.
+        </div>
+
+        <!-- Mode Toggle -->
+        <div style="display: flex; gap: 12px;">
+          <button id="vault-mode-enc" class="btn btn-primary" onclick="setVaultMode('encrypt')">Encrypt File</button>
+          <button id="vault-mode-dec" class="btn btn-secondary" onclick="setVaultMode('decrypt')">Decrypt Container (.aegis)</button>
+        </div>
+
+        <!-- Drop Zone -->
+        <div id="vault-dropzone" class="dropzone" onclick="document.getElementById('vault-file-input').click()">
+          <input type="file" id="vault-file-input" style="display: none;" onchange="handleFileSelect(this.files[0])">
+          <svg class="dropzone-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+          </svg>
+          <div id="dropzone-text" style="font-weight: 500;">
+            Drag & drop a file here, or click to browse
+          </div>
+          <div id="file-selected-badge" style="display: none;" class="status-badge">
+            <span id="file-name-display"></span>
+          </div>
+        </div>
+
+        <!-- Password input -->
+        <div class="form-group">
+          <label for="vault-password" id="vault-password-label">Vault Password</label>
+          <input type="password" id="vault-password" placeholder="Enter password (Argon2id derived)">
+        </div>
+
+        <button id="vault-action-btn" class="btn btn-primary" onclick="executeVaultAction()">
+          Encrypt File to .aegis
+        </button>
+
+        <!-- Progress and Output -->
+        <div id="vault-progress" style="display: none; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--muted);">
+            <span id="vault-progress-status">Processing chunks...</span>
+            <span id="vault-progress-pct">0%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="vault-progress-fill" class="progress-bar-fill"></div>
+          </div>
+        </div>
+
+        <div id="vault-result" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: INSPECTOR -->
+    <div id="tab-inspector" class="tab-panel">
+      <div class="glass-card">
+        <div class="card-title">Container Inspector</div>
+        <div class="card-desc">
+          Safely inspect the public header of any <code>.aegis</code> container without a password. Verifies magic bytes, version, KDF memory cost, nonce prefix, and slot distribution.
+        </div>
+
+        <div class="dropzone" onclick="document.getElementById('inspect-file-input').click()">
+          <input type="file" id="inspect-file-input" style="display: none;" onchange="inspectSelectedFile(this.files[0])">
+          <svg class="dropzone-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+          </svg>
+          <div>Drop an <code>.aegis</code> container to inspect header</div>
+        </div>
+
+        <div id="inspect-result" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: PASSWORD LAB -->
+    <div id="tab-password" class="tab-panel">
+      <div class="glass-card">
+        <div class="card-title">Password Lab: Strength & Hardware Cracking Estimates</div>
+        <div class="card-desc">
+          Explore password entropy and why memory-hard <strong>Argon2id</strong> neutralizes high-end GPU cluster attacks compared to PBKDF2 or raw hashes.
+        </div>
+
+        <div class="form-group">
+          <label for="pwd-input">Test a Password</label>
+          <input type="text" id="pwd-input" placeholder="Type a password to test in real-time" oninput="runPasswordCheck(this.value)">
+          <div class="strength-meter">
+            <div id="pwd-strength-bar" class="strength-bar"></div>
+          </div>
+        </div>
+
+        <div id="pwd-details" style="display: none; flex-direction: column; gap: 16px;">
+          <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+            <div class="status-badge" id="pwd-score-badge">Score: 0/4</div>
+            <div class="status-badge" id="pwd-entropy-badge">Entropy: 0 bits</div>
+          </div>
+
+          <div class="card-title" style="font-size: 16px;">Estimated Brute-force Times (Hardware Scenarios)</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Attack Scenario</th>
+                <th>Hash Rate</th>
+                <th>Expected Time to Crack</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Online Throttled Guessing</td>
+                <td class="mono">100 / sec</td>
+                <td class="mono" id="crack-online">-</td>
+              </tr>
+              <tr>
+                <td>GPU Cluster (PBKDF2 / MD5)</td>
+                <td class="mono">10,000,000,000 / sec</td>
+                <td class="mono" id="crack-gpu" style="color: var(--danger);">-</td>
+              </tr>
+              <tr>
+                <td><strong>Argon2id (Aegis Vault, 64MB RAM)</strong></td>
+                <td class="mono">2,000 / sec</td>
+                <td class="mono" id="crack-argon" style="color: var(--success); font-weight: 600;">-</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div id="pwd-suggestions" class="toast toast-warning" style="display: none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: AVALANCHE LAB -->
+    <div id="tab-avalanche" class="tab-panel">
+      <div class="glass-card">
+        <div class="card-title">Avalanche Lab: Strict Avalanche Criterion (SAC)</div>
+        <div class="card-desc">
+          Flip a <strong>single bit</strong> in the input plaintext or AES key and observe the non-linear ripple through SubBytes, ShiftRows, and MixColumns. By round 2-3, ~50% of bits differ.
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Plaintext Block (16 bytes hex)</label>
+            <input type="text" id="ava-pt" class="mono" value="00112233445566778899aabbccddeeff">
+          </div>
+          <div class="form-group">
+            <label>Key (16 or 32 bytes hex)</label>
+            <input type="text" id="ava-key" class="mono" value="000102030405060708090a0b0c0d0e0f">
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 16px; align-items: flex-end;">
+          <div class="form-group" style="flex: 1;">
+            <label>Target to Flip</label>
+            <select id="ava-target">
+              <option value="plaintext">Plaintext Block</option>
+              <option value="key">Key</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label>Bit Index to Flip (0 to 127)</label>
+            <input type="number" id="ava-bit" min="0" max="127" value="0">
+          </div>
+          <button class="btn btn-violet" onclick="runAvalanche()">Simulate Avalanche</button>
+        </div>
+
+        <div id="ava-results" style="display: none; flex-direction: column; gap: 16px;">
+          <div id="ava-sac-badge" class="toast toast-success"></div>
+          <table>
+            <thead>
+              <tr>
+                <th>Round</th>
+                <th>Bits Changed (Hamming Distance)</th>
+                <th>Diffusion %</th>
+                <th>Differing Bytes</th>
+              </tr>
+            </thead>
+            <tbody id="ava-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: KEY SLOTS -->
+    <div id="tab-slots" class="tab-panel">
+      <div class="glass-card">
+        <div class="card-title">Key Slots (Multi-Password Access)</div>
+        <div class="card-desc">
+          Add an independent recovery password or department key to an existing <code>.aegis</code> container without re-encrypting any payload chunks.
+        </div>
+
+        <div class="dropzone" onclick="document.getElementById('slot-file-input').click()">
+          <input type="file" id="slot-file-input" style="display: none;" onchange="handleSlotFileSelect(this.files[0])">
+          <svg class="dropzone-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+          </svg>
+          <div id="slot-dropzone-text">Drop an <code>.aegis</code> file to add/manage key slots</div>
+        </div>
+
+        <div id="slot-form" style="display: none; flex-direction: column; gap: 14px;">
+          <div class="form-group">
+            <label>Current Valid Password</label>
+            <input type="password" id="slot-curr-pwd" placeholder="Password that currently opens the vault">
+          </div>
+          <div class="form-group">
+            <label>New Additional Password</label>
+            <input type="password" id="slot-new-pwd" placeholder="New password to add as key slot">
+          </div>
+          <div class="form-group">
+            <label>Slot Label (e.g. 'Recovery Key', 'Manager Password')</label>
+            <input type="text" id="slot-label" placeholder="Slot label">
+          </div>
+          <button class="btn btn-primary" onclick="addSlotToVault()">Attach Key Slot</button>
+        </div>
+
+        <div id="slot-result" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- TAB 6: AES X-RAY -->
+    <div id="tab-xray" class="tab-panel">
+      <div class="glass-card">
+        <div class="card-title">
+          <span>AES X-Ray (Educational Step-by-Step Tracer)</span>
+          <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--violet); border: 1px solid var(--violet);">EDUCATIONAL ONLY</span>
+        </div>
+        <div class="card-desc">
+          Step round-by-round through the internal 4x4 state matrix. Validated against official <strong>NIST FIPS-197</strong> vectors. Changed bytes glow violet.
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Input Block (16 bytes hex)</label>
+            <input type="text" id="xray-pt" class="mono" value="3243f6a8885a308d313198a2e0370734">
+          </div>
+          <div class="form-group">
+            <label>Key (16 or 32 bytes hex)</label>
+            <input type="text" id="xray-key" class="mono" value="2b7e151628aed2a6abf7158809cf4f3c">
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+          <button class="btn btn-violet" onclick="startXRayTrace()">Run AES X-Ray</button>
+          <button class="btn btn-secondary" onclick="loadFIPSVector(128)">Load FIPS-197 AES-128</button>
+          <button class="btn btn-secondary" onclick="loadFIPSVector(256)">Load FIPS-197 AES-256</button>
+        </div>
+
+        <!-- X-Ray Visualizer Stage -->
+        <div id="xray-stage" style="display: none; flex-direction: column; gap: 20px;">
+          <!-- Timeline scrubber -->
+          <div class="timeline" id="xray-timeline"></div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 24px; align-items: start;">
+            <!-- 4x4 State Grid -->
+            <div class="matrix-container">
+              <div style="font-size: 13px; font-weight: 500; color: var(--muted);" id="xray-step-header">State Matrix (4x4 Column-Major)</div>
+              <div class="matrix-grid" id="xray-grid"></div>
+              <div class="mono" style="font-size: 12px; color: var(--muted); word-break: break-all;" id="xray-state-hex"></div>
+            </div>
+
+            <!-- Step explanation card -->
+            <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(11, 16, 32, 0.6); padding: 18px; border-radius: 8px; border: 1px solid var(--border);">
+              <h3 id="step-title" style="font-family: 'Space Grotesk'; font-size: 16px; color: var(--cyan);"></h3>
+              <p id="step-desc" style="font-size: 13px; line-height: 1.6; color: var(--text);"></p>
+              <div id="step-key-box" style="display: none; flex-direction: column; gap: 4px;">
+                <label>Round Key:</label>
+                <div id="step-key-hex" class="mono" style="font-size: 12px; color: var(--violet); word-break: break-all;"></div>
+              </div>
+
+              <!-- Step Navigation -->
+              <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn btn-secondary" id="xray-prev-btn" onclick="navXrayStep(-1)">Previous Step</button>
+                <button class="btn btn-primary" id="xray-next-btn" onclick="navXrayStep(1)">Next Step</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Vault logic
+    let vaultMode = 'encrypt';
+    let selectedFileBytes = null;
+    let selectedFileName = '';
+
+    function setVaultMode(mode) {
+      vaultMode = mode;
+      const encBtn = document.getElementById('vault-mode-enc');
+      const decBtn = document.getElementById('vault-mode-dec');
+      const actionBtn = document.getElementById('vault-action-btn');
+      const label = document.getElementById('vault-password-label');
+      const dropText = document.getElementById('dropzone-text');
+
+      if (mode === 'encrypt') {
+        encBtn.className = 'btn btn-primary';
+        decBtn.className = 'btn btn-secondary';
+        actionBtn.innerText = 'Encrypt File to .aegis';
+        label.innerText = 'Encryption Password';
+        dropText.innerText = 'Drag & drop a file to encrypt';
+      } else {
+        encBtn.className = 'btn btn-secondary';
+        decBtn.className = 'btn btn-primary';
+        actionBtn.innerText = 'Decrypt & Verify .aegis File';
+        label.innerText = 'Decryption Password';
+        dropText.innerText = 'Drag & drop an .aegis container to decrypt';
+      }
+    }
+
+    function handleFileSelect(file) {
+      if (!file) return;
+      selectedFileName = file.name;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        selectedFileBytes = new Uint8Array(e.target.result);
+        document.getElementById('file-name-display').innerText = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        document.getElementById('file-selected-badge').style.display = 'inline-flex';
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Drag-and-drop support
+    const dropzone = document.getElementById('vault-dropzone');
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files[0]);
+    });
+
+    function uint8ToBase64(bytes) {
+      let binary = '';
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    }
+
+    function base64ToBlob(base64, mimeType = 'application/octet-stream') {
+      const byteChars = atob(base64);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      return new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
+    }
+
+    async function executeVaultAction() {
+      const pwd = document.getElementById('vault-password').value;
+      const resBox = document.getElementById('vault-result');
+      if (!selectedFileBytes) {
+        showToast(resBox, 'Please select a file first.', 'warning');
+        return;
+      }
+      if (!pwd) {
+        showToast(resBox, 'Please enter a password.', 'warning');
+        return;
+      }
+
+      const progress = document.getElementById('vault-progress');
+      const progFill = document.getElementById('vault-progress-fill');
+      const progPct = document.getElementById('vault-progress-pct');
+      progress.style.display = 'flex';
+      progFill.style.width = '30%';
+      progPct.innerText = '30%';
+
+      const endpoint = vaultMode === 'encrypt' ? '/api/encrypt' : '/api/decrypt';
+      const payload = vaultMode === 'encrypt' ? {
+        filename: selectedFileName,
+        data_base64: uint8ToBase64(selectedFileBytes),
+        password: pwd
+      } : {
+        filename: selectedFileName,
+        container_base64: uint8ToBase64(selectedFileBytes),
+        password: pwd
+      };
+
+      try {
+        progFill.style.width = '70%';
+        progPct.innerText = '70%';
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        progFill.style.width = '100%';
+        progPct.innerText = '100%';
+
+        if (!response.ok || !data.success) {
+          showToast(resBox, `Failed: ${data.error || 'Authentication error or corrupted container'}`, 'danger');
+        } else {
+          const blob = vaultMode === 'encrypt' 
+            ? base64ToBlob(data.container_base64) 
+            : base64ToBlob(data.data_base64);
+          const dlUrl = URL.createObjectURL(blob);
+          resBox.style.display = 'flex';
+          resBox.innerHTML = `
+            <div class="toast toast-success" style="width: 100%; justify-content: space-between;">
+              <span><strong>Success:</strong> ${vaultMode === 'encrypt' ? 'Encrypted' : 'Verified & Decrypted'} ${data.filename}</span>
+              <a href="${dlUrl}" download="${data.filename}" class="btn btn-primary" style="padding: 6px 14px; font-size: 13px;">Download File</a>
+            </div>
+          `;
+        }
+      } catch (err) {
+        showToast(resBox, `Network or server error: ${err.message}`, 'danger');
+      } finally {
+        setTimeout(() => { progress.style.display = 'none'; }, 600);
+      }
+    }
+
+    function showToast(el, msg, type) {
+      el.style.display = 'block';
+      el.innerHTML = `<div class="toast toast-${type}"><span>${msg}</span></div>`;
+    }
+
+    // INSPECTOR
+    async function inspectSelectedFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const bytes = new Uint8Array(e.target.result);
+        const resBox = document.getElementById('inspect-result');
+        try {
+          const resp = await fetch('/api/inspect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ container_base64: uint8ToBase64(bytes) })
+          });
+          const data = await resp.json();
+          if (!data.success) {
+            showToast(resBox, `Inspection Error: ${data.error}`, 'danger');
+          } else {
+            resBox.style.display = 'block';
+            let slotsHtml = data.slots.map(s => `
+              <tr>
+                <td class="mono">#${s.slot_id} (${s.label})</td>
+                <td class="mono">${s.kdf.algorithm} (t=${s.kdf.iterations}, m=${s.kdf.memory_cost}KB)</td>
+                <td class="mono" style="word-break: break-all;">${s.salt_hex}</td>
+              </tr>
+            `).join('');
+
+            resBox.innerHTML = `
+              <div style="background: rgba(11, 16, 32, 0.6); padding: 18px; border-radius: 8px; border: 1px solid var(--border);">
+                <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--cyan);">Container Header Metadata</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                  <div><span style="color: var(--muted); font-size: 12px;">Format Version:</span> <strong class="mono">v${data.version}</strong></div>
+                  <div><span style="color: var(--muted); font-size: 12px;">Chunk Size:</span> <strong class="mono">${data.chunk_size / 1024} KiB</strong></div>
+                  <div><span style="color: var(--muted); font-size: 12px;">Approx Chunks:</span> <strong class="mono">${data.approx_chunks}</strong></div>
+                  <div><span style="color: var(--muted); font-size: 12px;">Header Size:</span> <strong class="mono">${data.header_length_bytes} bytes</strong></div>
+                </div>
+                <div style="font-size: 13px; color: var(--muted); margin-bottom: 8px;">Key Slots (${data.slot_count}):</div>
+                <table>
+                  <thead><tr><th>Slot</th><th>KDF Configuration</th><th>Salt</th></tr></thead>
+                  <tbody>${slotsHtml}</tbody>
+                </table>
+              </div>
+            `;
+          }
+        } catch (err) {
+          showToast(resBox, `Error: ${err.message}`, 'danger');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // PASSWORD LAB
+    let pwdTimeout = null;
+    function runPasswordCheck(val) {
+      clearTimeout(pwdTimeout);
+      pwdTimeout = setTimeout(async () => {
+        if (!val) {
+          document.getElementById('pwd-details').style.display = 'none';
+          document.getElementById('pwd-strength-bar').className = 'strength-bar';
+          return;
+        }
+        try {
+          const resp = await fetch('/api/strength', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: val })
+          });
+          const res = await resp.json();
+          if (res.success) {
+            const an = res.analysis;
+            document.getElementById('pwd-details').style.display = 'flex';
+            document.getElementById('pwd-strength-bar').className = `strength-bar score-${an.score}`;
+            document.getElementById('pwd-score-badge').innerText = `Score: ${an.score}/4 (${an.label})`;
+            document.getElementById('pwd-entropy-badge').innerText = `Entropy: ${an.entropy_bits} bits`;
+
+            document.getElementById('crack-online').innerText = an.estimates.online_throttled.time;
+            document.getElementById('crack-gpu').innerText = an.estimates.gpu_fast_hash.time;
+            document.getElementById('crack-argon').innerText = an.estimates.argon2id_vault.time;
+
+            const suggBox = document.getElementById('pwd-suggestions');
+            if (an.suggestions.length > 0) {
+              suggBox.style.display = 'block';
+              suggBox.innerHTML = '<strong>Security Advice:</strong> ' + an.suggestions.join(' ');
+            } else {
+              suggBox.style.display = 'none';
+            }
+          }
+        } catch (e) {}
+      }, 150);
+    }
+
+    // AVALANCHE LAB
+    async function runAvalanche() {
+      const pt = document.getElementById('ava-pt').value.trim();
+      const key = document.getElementById('ava-key').value.trim();
+      const target = document.getElementById('ava-target').value;
+      const bit = document.getElementById('ava-bit').value;
+      const resBox = document.getElementById('ava-results');
+
+      try {
+        const resp = await fetch('/api/avalanche', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            plaintext_hex: pt,
+            key_hex: key,
+            target: target,
+            bit_index: parseInt(bit, 10)
+          })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          resBox.style.display = 'flex';
+          const av = data.avalanche;
+          document.getElementById('ava-sac-badge').innerHTML = `
+            <strong>Strict Avalanche Criterion (SAC):</strong> Flipping bit ${av.bit_index} in ${av.flip_target} resulted in <strong>${av.final_hamming_distance_bits}/128 bits (${av.final_diffusion_percentage}%)</strong> flipped in final ciphertext! (Satisfies ~50% SAC: ${av.sac_satisfied ? 'YES' : 'NO'})
+          `;
+
+          const rows = av.round_stats.map(r => `
+            <tr>
+              <td><strong>${r.round_name}</strong></td>
+              <td class="mono">${r.hamming_distance_bits} / 128</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="progress-bar-bg" style="width: 120px;">
+                    <div class="progress-bar-fill" style="width: ${r.diffusion_percentage}%;"></div>
+                  </div>
+                  <span class="mono">${r.diffusion_percentage}%</span>
+                </div>
+              </td>
+              <td class="mono">${r.differing_bytes_count} / 16</td>
+            </tr>
+          `).join('');
+          document.getElementById('ava-table-body').innerHTML = rows;
+        }
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    // KEY SLOTS
+    let slotFileBytes = null;
+    function handleSlotFileSelect(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        slotFileBytes = new Uint8Array(e.target.result);
+        document.getElementById('slot-dropzone-text').innerText = `Container loaded: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        document.getElementById('slot-form').style.display = 'flex';
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    async function addSlotToVault() {
+      const curr = document.getElementById('slot-curr-pwd').value;
+      const next = document.getElementById('slot-new-pwd').value;
+      const label = document.getElementById('slot-label').value;
+      const resBox = document.getElementById('slot-result');
+
+      if (!curr || !next) {
+        showToast(resBox, 'Both current and new passwords are required.', 'warning');
+        return;
+      }
+
+      try {
+        const resp = await fetch('/api/slots/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            container_base64: uint8ToBase64(slotFileBytes),
+            current_password: curr,
+            new_password: next,
+            label: label
+          })
+        });
+        const data = await resp.json();
+        if (!data.success) {
+          showToast(resBox, `Failed to attach slot: ${data.error}`, 'danger');
+        } else {
+          const blob = base64ToBlob(data.container_base64);
+          const dlUrl = URL.createObjectURL(blob);
+          resBox.style.display = 'block';
+          resBox.innerHTML = `
+            <div class="toast toast-success" style="justify-content: space-between;">
+              <span>Key Slot #${data.new_slot_id} added successfully without re-encrypting payload!</span>
+              <a href="${dlUrl}" download="updated_vault.aegis" class="btn btn-primary" style="padding: 6px 14px; font-size: 13px;">Download Updated Container</a>
+            </div>
+          `;
+        }
+      } catch (e) {
+        showToast(resBox, `Error: ${e.message}`, 'danger');
+      }
+    }
+
+    // AES X-RAY
+    let xrayTrace = null;
+    let currentXrayIndex = 0;
+
+    function loadFIPSVector(bits) {
+      if (bits === 128) {
+        document.getElementById('xray-pt').value = "3243f6a8885a308d313198a2e0370734";
+        document.getElementById('xray-key').value = "2b7e151628aed2a6abf7158809cf4f3c";
+      } else {
+        document.getElementById('xray-pt').value = "00112233445566778899aabbccddeeff";
+        document.getElementById('xray-key').value = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
+      }
+      startXRayTrace();
+    }
+
+    async function startXRayTrace() {
+      const pt = document.getElementById('xray-pt').value.trim();
+      const key = document.getElementById('xray-key').value.trim();
+
+      try {
+        const resp = await fetch('/api/xray', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ block_hex: pt, key_hex: key })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          xrayTrace = data.trace;
+          currentXrayIndex = 0;
+          renderXRayTimeline();
+          renderXRayStep(0);
+          document.getElementById('xray-stage').style.display = 'flex';
+        }
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    function renderXRayTimeline() {
+      const tl = document.getElementById('xray-timeline');
+      tl.innerHTML = '';
+      xrayTrace.steps.forEach((s, idx) => {
+        const pill = document.createElement('button');
+        pill.className = `step-pill ${idx === currentXrayIndex ? 'active' : ''}`;
+        pill.innerText = `R${s.round}: ${s.step_name}`;
+        pill.onclick = () => renderXRayStep(idx);
+        tl.appendChild(pill);
+      });
+    }
+
+    function renderXRayStep(idx) {
+      if (!xrayTrace || idx < 0 || idx >= xrayTrace.steps.length) return;
+      currentXrayIndex = idx;
+      const step = xrayTrace.steps[idx];
+
+      // Update timeline active state
+      document.querySelectorAll('.step-pill').forEach((p, i) => {
+        p.classList.toggle('active', i === idx);
+        if (i === idx) p.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      });
+
+      // Render 4x4 matrix grid (column-major)
+      const grid = document.getElementById('xray-grid');
+      grid.innerHTML = '';
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 4; c++) {
+          const val = step.state_hex_grid[r][c];
+          const isChanged = step.changed_mask[r][c];
+          const cell = document.createElement('div');
+          cell.className = `matrix-cell ${isChanged ? 'changed' : ''}`;
+          cell.innerText = val;
+          grid.appendChild(cell);
+        }
+      }
+
+      document.getElementById('xray-state-hex').innerText = 'Hex: ' + step.state_hex;
+      document.getElementById('step-title').innerText = step.title;
+      document.getElementById('step-desc').innerText = step.description;
+
+      const keyBox = document.getElementById('step-key-box');
+      if (step.round_key_hex) {
+        keyBox.style.display = 'flex';
+        document.getElementById('step-key-hex').innerText = step.round_key_hex;
+      } else {
+        keyBox.style.display = 'none';
+      }
+
+      document.getElementById('xray-prev-btn').disabled = idx === 0;
+      document.getElementById('xray-next-btn').disabled = idx === xrayTrace.steps.length - 1;
+    }
+
+    function navXrayStep(delta) {
+      renderXRayStep(currentXrayIndex + delta);
+    }
+  </script>
+</body>
+</html>
