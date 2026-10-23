@@ -35,7 +35,11 @@ class AegisRequestHandler(BaseHTTPRequestHandler):
     server_version = "AegisVault/0.1"
 
     def _validate_host_header(self) -> bool:
-        """Enforce strict host-header check to prevent DNS rebinding attacks."""
+        """Enforce strict host-header check to prevent DNS rebinding attacks on localhost."""
+        # Allow remote requests when explicitly deployed in container/PaaS mode
+        if getattr(self.server, "allow_remote", False) or os.environ.get("AEGIS_ALLOW_REMOTE") == "1" or os.environ.get("PORT"):
+            return True
+
         host = self.headers.get("Host", "").strip().lower()
         if not host:
             self._send_error_json(HTTPStatus.FORBIDDEN, "Missing Host header")
@@ -307,16 +311,24 @@ class AegisRequestHandler(BaseHTTPRequestHandler):
         sys.stderr.write(f"[{self.log_date_time_string()}] {self.address_string()} - {format % args}\n")
 
 
-def run_server(host: str = "127.0.0.1", port: int = 8000) -> int:
-    """Run Aegis Vault local HTTP server."""
-    if host not in ("127.0.0.1", "localhost"):
-        print(f"Refusing to bind to '{host}': Aegis Vault must stay bound to 127.0.0.1 for local security.", file=sys.stderr)
-        return 1
+def run_server(host: Optional[str] = None, port: Optional[int] = None) -> int:
+    """Run Aegis Vault local or cloud HTTP server."""
+    env_port = int(os.environ["PORT"]) if "PORT" in os.environ else 8000
+    chosen_port = port if port is not None else env_port
+    chosen_host = host if host is not None else ("0.0.0.0" if "PORT" in os.environ else "127.0.0.1")
 
-    server_address = (host, port)
+    is_remote = chosen_host in ("0.0.0.0", "") or "PORT" in os.environ or os.environ.get("AEGIS_ALLOW_REMOTE") == "1"
+
+    server_address = (chosen_host, chosen_port)
     httpd = ThreadingHTTPServer(server_address, AegisRequestHandler)
+    httpd.allow_remote = is_remote
+
     print(f"=== Aegis Vault Server Running ===")
-    print(f"Local URL: http://{host}:{port}")
+    print(f"URL: http://{chosen_host}:{chosen_port}")
+    if is_remote:
+        print("Mode: Cloud / PaaS deployment (accepting remote traffic)")
+    else:
+        print("Mode: Localhost only (127.0.0.1 bound, Host-header protected)")
     print("Press Ctrl+C to stop.")
     try:
         httpd.serve_forever()

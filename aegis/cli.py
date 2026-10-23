@@ -304,9 +304,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_xray.set_defaults(func=cmd_xray)
 
     # serve
-    p_srv = sub.add_parser("serve", help="Start local web server and Vault Glass UI")
-    p_srv.add_argument("--host", default="127.0.0.1", help="Host interface (must stay 127.0.0.1)")
-    p_srv.add_argument("--port", type=int, default=8000, help="Server port (default 8000)")
+    p_srv = sub.add_parser("serve", help="Start web server and Vault Glass UI")
+    p_srv.add_argument("--host", default=None, help="Host interface (default: 127.0.0.1 for local, 0.0.0.0 for cloud)")
+    p_srv.add_argument("--port", type=int, default=None, help="Server port (default: 8000 or $PORT env var)")
     p_srv.set_defaults(func=cmd_serve)
 
     return parser
